@@ -63,6 +63,21 @@ document.getElementById('analyze').addEventListener('click', async () => {
             
             // Vercelの環境変数からAPIキーを取得
             const apiKey = process.env.GOOGLE_API_KEY;
+            console.log('APIキー:', apiKey ? '設定されています' : '設定されていません');
+            
+            // テスト用のリクエスト
+            const testResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+            
+            if (!testResponse.ok) {
+                const error = await testResponse.json();
+                console.error('テストリクエストエラー:', error);
+                throw new Error(`テストリクエストに失敗しました: ${error.message}`);
+            }
             
             // Gemini Vision APIにリクエスト
             const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent', {
