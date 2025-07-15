@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const image = canvas.toDataURL('image/jpeg');
             
-            // Gemini Vision APIを使用して画像を分析
+            // サーバーサイドAPIを使用して画像を分析
             const visionResponse = await analyzeImage(image);
             
             // Gemini Generate APIを使用して分析結果を生成
@@ -49,6 +49,30 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('撮影に失敗しました。');
         }
     });
+
+    // サーバーサイドAPIを使用して画像を分析
+    async function analyzeImage(image) {
+        try {
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`APIエラー: ${response.status} ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('APIエラー:', error);
+            throw error;
+        }
+    }
 
     // ページ読み込み時にカメラを初期化
     initCamera();
