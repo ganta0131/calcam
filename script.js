@@ -20,6 +20,8 @@ async function initCamera() {
         container.style.width = '100%';
         container.style.height = '100%';
         container.style.maxHeight = '80vh';
+        container.style.backgroundColor = '#f0f0f0';
+        container.style.borderRadius = '10px';
         
         // カメラのスタイルを調整
         camera.style.width = '100%';
@@ -59,12 +61,6 @@ async function initCamera() {
                     // カメラの向きを自動調整
                     camera.style.transform = 'rotate(0deg)';
                     camera.style.webkitTransform = 'rotate(0deg)';
-                    
-                    // iPhoneのユーザーインタラクション制限対策
-                    camera.style.display = 'none';
-                    setTimeout(() => {
-                        camera.style.display = 'block';
-                    }, 100);
                 }
                 
                 resolve();
