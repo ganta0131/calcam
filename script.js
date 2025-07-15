@@ -58,11 +58,9 @@ async function initCamera() {
         // カメラを設定
         camera.srcObject = stream;
         camera.style.width = '100%';
-        camera.style.height = '100%';
+        camera.style.height = '500px';
         camera.style.objectFit = 'contain';
-        camera.style.position = 'absolute';
-        camera.style.top = '0';
-        camera.style.left = '0';
+        camera.style.position = 'static';
         camera.style.transform = 'rotate(0deg)';
         camera.style.webkitTransform = 'rotate(0deg)';
         
