@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gemini Vision APIを使用して画像を分析
     async function analyzeImage(image) {
         try {
-            const apiKey = window.GOOGLE_API_KEY;
+            const apiKey = document.querySelector('meta[name="GOOGLE_API_KEY"]').content;
             if (!apiKey) {
                 throw new Error('APIキーが設定されていません');
             }
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gemini Generate APIを使用して分析結果を生成
     async function generateAnalysis(visionResponse) {
         try {
-            const apiKey = window.GOOGLE_API_KEY;
+            const apiKey = document.querySelector('meta[name="GOOGLE_API_KEY"]').content;
             if (!apiKey) {
                 throw new Error('APIキーが設定されていません');
             }
