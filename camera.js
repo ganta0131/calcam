@@ -54,11 +54,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gemini Vision APIを使用して画像を分析
     async function analyzeImage(image) {
         try {
+            const apiKey = window.GOOGLE_API_KEY;
+            if (!apiKey) {
+                throw new Error('APIキーが設定されていません');
+            }
+
             const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.GOOGLE_API_KEY}`
+                    'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
                     contents: [{
@@ -84,11 +89,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gemini Generate APIを使用して分析結果を生成
     async function generateAnalysis(visionResponse) {
         try {
+            const apiKey = window.GOOGLE_API_KEY;
+            if (!apiKey) {
+                throw new Error('APIキーが設定されていません');
+            }
+
             const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.GOOGLE_API_KEY}`
+                    'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
                     contents: [{
