@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import os
+import base64
 
 app = Flask(__name__)
 
@@ -12,16 +13,28 @@ def index():
 def analyze():
     try:
         # 画像データを取得
-        image_data = request.get_json().get('image')
-        if not image_data:
+        data = request.get_json()
+        if not data or 'image' not in data:
             raise ValueError('画像データが含まれていません')
             
         # Base64エンコードされた画像データの処理
+        image_data = data['image']
         if not image_data.startswith('data:image/jpeg;base64,'):
             raise ValueError('無効な画像データ形式')
             
+        # データURLのプレフィックスを削除
+        base64_data = image_data.split(',')[1]
+        
+        # パディングを追加
+        padding_needed = len(base64_data) % 4
+        if padding_needed:
+            base64_data += '=' * (4 - padding_needed)
+        
+        # URLエンコードされた文字をデコード
+        base64_data = base64_data.replace('-', '+').replace('_', '/')
+        
         # Gemini Vision APIを呼び出し
-        vision_response = call_vision_api(image_data)
+        vision_response = call_vision_api(base64_data)
         
         # Gemini Generate APIを呼び出し
         generate_response = call_generate_api(vision_response)
@@ -30,13 +43,10 @@ def analyze():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def call_vision_api(image_data):
+def call_vision_api(base64_data):
     api_key = os.environ.get('GOOGLE_API_KEY')
     if not api_key:
         raise ValueError('APIキーが設定されていません')
-    
-    # Base64データを適切な形式に変換
-    image_data = image_data.replace(' ', '+')
     
     response = requests.post(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
@@ -48,7 +58,7 @@ def call_vision_api(image_data):
             'contents': [{
                 'inlineData': {
                     'mimeType': 'image/jpeg',
-                    'data': image_data
+                    'data': base64_data
                 }
             }]
         }

@@ -145,10 +145,10 @@
                     // データURLのプレフィックスを削除
                     const base64Data = image.split(',')[1];
                     
-                    // Base64データを適切な形式に変換
+                    // URLエンコードされた文字をデコード
                     const processedData = base64Data
-                        .replace(/\s+/g, '')  // スペースを削除
-                        .replace(/=/g, '');   // パディングを削除
+                        .replace(/-/g, '+')    // - を + に変換
+                        .replace(/_/g, '/');   // _ を / に変換
                     
                     const response = await fetch('/analyze', {
                         method: 'POST',
