@@ -12,8 +12,14 @@ def index():
 def analyze():
     try:
         # 画像データを取得
-        image_data = request.json['image']
-        
+        image_data = request.get_json().get('image')
+        if not image_data:
+            raise ValueError('画像データが含まれていません')
+            
+        # Base64エンコードされた画像データの処理
+        if not image_data.startswith('data:image/jpeg;base64,'):
+            raise ValueError('無効な画像データ形式')
+            
         # Gemini Vision APIを呼び出し
         vision_response = call_vision_api(image_data)
         

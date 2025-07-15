@@ -138,14 +138,19 @@
                     canvas.height = video.videoHeight;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(video, 0, 0);
+                    
+                    // 画像をJPEGに変換し、Base64エンコード
                     const image = canvas.toDataURL('image/jpeg', 0.8);
-
+                    
+                    // データURLのプレフィックスを削除
+                    const base64Data = image.split(',')[1];
+                    
                     const response = await fetch('/analyze', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ image: image })
+                        body: JSON.stringify({ image: base64Data })
                     });
 
                     const data = await response.json();
