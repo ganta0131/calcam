@@ -35,6 +35,9 @@ def call_vision_api(image_data):
     if not api_key:
         raise ValueError('APIキーが設定されていません')
     
+    # Base64データを適切な形式に変換
+    image_data = image_data.replace(' ', '+')
+    
     response = requests.post(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
         headers={
@@ -45,7 +48,7 @@ def call_vision_api(image_data):
             'contents': [{
                 'inlineData': {
                     'mimeType': 'image/jpeg',
-                    'data': image_data.split(',')[1]
+                    'data': image_data
                 }
             }]
         }
