@@ -67,7 +67,8 @@ async function initCamera() {
         // カメラが起動するまで待機
         await new Promise(resolve => {
             camera.onloadedmetadata = () => {
-                camera.play();
+                // カメラを静止画に設定
+                camera.pause();
                 
                 // iPhone対応の追加設定
                 if (navigator.userAgent.match(/iPhone/)) {
