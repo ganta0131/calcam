@@ -3,5 +3,5 @@ webアプリを作りたい。
 それぞれの献立名と推定カロリー、献立全体の合算カロリーを並べて表示する。
 gemini vision apiで写真分析、generate apiで結果文章生成。github経由でvercelで公開。
 
-githubとvercelは接続完了。
+githubとvercelは接続完了。gitのブランチはmaster。
 apiキーはvercel環境変数名「GOOGLE_API_KEY」で設定済み。

@@ -6,12 +6,59 @@ let isCaptured = false;
 // カメラの初期化
 async function initCamera() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        camera = document.getElementById('camera');
+        // HTTPSでのみカメラアクセスを許可
+        if (!window.location.protocol === 'https:') {
+            throw new Error('カメラを使用するにはHTTPSが必要です。');
+        }
+
+        // ユーザーの同意を求める
+        const camera = document.getElementById('camera');
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: 'environment', // バックカメラを使用
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        });
+        
         camera.srcObject = stream;
+        
+        // カメラが起動するまで待機
+        await new Promise(resolve => {
+            camera.onloadedmetadata = () => resolve();
+        });
+        
+        // カメラの向きを調整
+        camera.play();
+        
     } catch (err) {
-        console.error('カメラのアクセスに失敗しました:', err);
-        alert('カメラのアクセスに失敗しました。');
+        console.error('カメラのアクセスエラー:', err);
+        
+        // より具体的なエラーメッセージを表示
+        let errorMessage = 'カメラのアクセスに失敗しました。';
+        if (err.name === 'NotAllowedError') {
+            errorMessage = 'カメラへのアクセスを許可してください。\n\n' +
+                         '1. ブラウザの設定でカメラアクセスを許可してください\n' +
+                         '2. HTTPS環境でアプリケーションを使用してください\n' +
+                         '3. ブラウザを再起動して再度お試しください';
+        } else if (err.name === 'NotFoundError') {
+            errorMessage = 'カメラが見つかりませんでした。\n\n' +
+                         '1. デバイスにカメラが接続されているか確認してください\n' +
+                         '2. カメラの電源がオンになっているか確認してください';
+        }
+        
+        alert(errorMessage);
+        
+        // カメラ起動に失敗した場合はリトライボタンを表示
+        const retryButton = document.getElementById('retry');
+        retryButton.style.display = 'inline';
+        retryButton.textContent = 'カメラを再起動';
+        
+        // リトライボタンのイベントリスナーを追加
+        retryButton.addEventListener('click', () => {
+            retryButton.style.display = 'none';
+            initCamera();
+        });
     }
 }
 
