@@ -72,7 +72,7 @@ async function initCamera() {
         currentStream = stream;
         camera.srcObject = stream;
         
-        // カメラが起動するまで待機
+        // ユーザーの同意を待機
         await new Promise(resolve => {
             camera.onloadedmetadata = () => {
                 // カメラの向きを調整
@@ -101,6 +101,9 @@ async function initCamera() {
                         camera.style.transform = `rotate(${window.orientation}deg)`;
                     }
                 });
+                
+                // ボタンの状態を更新
+                updateButtonStates('capture');
                 
                 resolve();
             };
@@ -162,23 +165,24 @@ function updateButtonStates(state) {
 
     switch (state) {
         case 'capture':
-            captureButton.className = 'active';
-            analyzeButton.className = 'disabled';
-            retryButton.className = 'disabled';
+            captureButton.classList.remove('disabled');
+            analyzeButton.classList.add('disabled');
+            retryButton.classList.add('disabled');
             resultDiv.style.display = 'none';
             loading.style.display = 'none';
             break;
         case 'analyze':
-            captureButton.className = 'disabled';
-            analyzeButton.className = 'active';
-            retryButton.className = 'disabled';
+            captureButton.classList.add('disabled');
+            analyzeButton.classList.remove('disabled');
+            retryButton.classList.add('disabled');
             resultDiv.style.display = 'none';
             loading.style.display = 'block';
             loading.querySelector('.loading-text').textContent = '分析中...';
             break;
         case 'result':
-            captureButton.className = 'disabled';
-            analyzeButton.className = 'disabled';
+            captureButton.classList.add('disabled');
+            analyzeButton.classList.add('disabled');
+            retryButton.classList.remove('disabled');
             retryButton.className = 'active';
             resultDiv.style.display = 'block';
             loading.style.display = 'none';
