@@ -9,58 +9,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // カメラの初期化
     async function initCamera() {
         try {
-            // バックカメラを優先
+            // カメラの制約条件を設定
             const constraints = {
                 video: {
-                    facingMode: { exact: 'environment' },
+                    facingMode: 'environment',
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 }
             };
 
+            // カメラアクセスをリクエスト
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
-            
-            // カメラが準備できたら、ボタンを有効化
+
+            // カメラが準備できたらボタンを有効化
             video.onloadedmetadata = () => {
                 captureButton.disabled = false;
             };
-
-            // エラーハンドリング
-            video.onerror = (error) => {
-                console.error('カメラエラー:', error);
-                alert('カメラの初期化に失敗しました。');
-            };
         } catch (error) {
             console.error('カメラアクセスエラー:', error);
-            
-            if (error.name === 'NotAllowedError') {
-                alert('カメラへのアクセスが拒否されました。');
-            } else if (error.name === 'NotFoundError') {
-                alert('カメラが見つかりませんでした。');
-            } else if (error.name === 'NotReadableError') {
-                alert('カメラが使用中です。');
-            } else {
-                alert('カメラの初期化に失敗しました。');
-            }
-        }
-    }
-
-    // カメラアクセスの初期化
-    async function initCamera() {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: 'environment', // バックカメラを使用
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                }
-            });
-            video.srcObject = stream;
-            captureButton.disabled = false;
-        } catch (error) {
-            console.error('カメラアクセスに失敗しました:', error);
             alert('カメラにアクセスできません。');
+            
+            // エラーの詳細をコンソールに表示
+            console.error('エラーの詳細:', {
+                name: error.name,
         }
     }
 
@@ -94,8 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
             displayResults(generateResponse);
             resultContainer.style.display = 'block';
         } catch (error) {
-            console.error('撮影に失敗しました:', error);
-            alert('撮影に失敗しました。');
+            console.error('撮影エラー:', error);
+            alert('撮影エラー: ' + error.message + '\n詳細: ' + error.name);
         }
     });
 
