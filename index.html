@@ -145,10 +145,21 @@
                     // データURLのプレフィックスを削除
                     const base64Data = image.split(',')[1];
                     
+                    // Base64データのバリデーション
+                    if (!base64Data.match(/^[A-Za-z0-9+/]+={0,2}$/)) {
+                        throw new Error('無効なBase64データ形式');
+                    }
+                    
                     // URLエンコードされた文字をデコード
                     const processedData = base64Data
                         .replace(/-/g, '+')    // - を + に変換
                         .replace(/_/g, '/');   // _ を / に変換
+                    
+                    // パディングを追加
+                    const paddingNeeded = processedData.length % 4;
+                    if (paddingNeeded) {
+                        processedData += '='.repeat(4 - paddingNeeded);
+                    }
                     
                     const response = await fetch('/analyze', {
                         method: 'POST',

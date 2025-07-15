@@ -48,6 +48,21 @@ def call_vision_api(base64_data):
     if not api_key:
         raise ValueError('APIキーが設定されていません')
     
+    # Base64データの最終的なチェック
+    if len(base64_data) % 4 != 0:
+        raise ValueError('Base64データの長さが4で割り切れません')
+    
+    # パディングを追加
+    padding_needed = len(base64_data) % 4
+    if padding_needed:
+        base64_data += '=' * (4 - padding_needed)
+    
+    # バリデーション
+    valid_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+    if not all(c in valid_chars for c in base64_data):
+        raise ValueError('無効なBase64文字が含まれています')
+    
+    # APIリクエスト
     response = requests.post(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
         headers={
@@ -65,7 +80,9 @@ def call_vision_api(base64_data):
     )
     
     if response.status_code != 200:
-        raise Exception(f'Vision APIエラー: {response.text}')
+        error_data = response.json()
+        error_message = error_data.get('error', {}).get('message', '不明なエラー')
+        raise Exception(f'Vision APIエラー: {error_message}')
     
     return response.json()
 
