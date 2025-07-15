@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // カメラの初期化
     async function initCamera() {
         try {
-            // カメラの制約条件を設定
             const constraints = {
                 video: {
                     facingMode: 'environment',
@@ -18,56 +17,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            // カメラアクセスをリクエスト
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
-
-            // カメラが準備できたらボタンを有効化
-            video.onloadedmetadata = () => {
-                captureButton.disabled = false;
-            };
+            captureButton.disabled = false;
         } catch (error) {
             console.error('カメラアクセスエラー:', error);
             alert('カメラにアクセスできません。');
-            
-            // エラーの詳細をコンソールに表示
-            console.error('エラーの詳細:', {
-                name: error.name,
         }
     }
 
     // 撮影処理
     captureButton.addEventListener('click', async () => {
         try {
-            // カメラが準備できていない場合はエラー
             if (!video.srcObject) {
                 throw new Error('カメラが準備できていません');
             }
 
-            // キャンバスのサイズをビデオの現在のサイズに合わせる
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
-
-            // ビデオの現在のフレームを描画
             ctx.drawImage(video, 0, 0);
-
-            // 画像をJPEGに変換
             const image = canvas.toDataURL('image/jpeg', 0.8);
             
-            // Gemini Vision APIを使用して画像を分析
             const visionResponse = await analyzeImage(image);
-            
-            // Gemini Generate APIを使用して分析結果を生成
             const generateResponse = await generateAnalysis(visionResponse);
             
-            // 結果を表示
             displayResults(generateResponse);
             resultContainer.style.display = 'block';
         } catch (error) {
             console.error('撮影エラー:', error);
-            alert('撮影エラー: ' + error.message + '\n詳細: ' + error.name);
+            alert('撮影エラー: ' + error.message);
         }
     });
 
