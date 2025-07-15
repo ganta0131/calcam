@@ -80,7 +80,7 @@ document.getElementById('analyze').addEventListener('click', async () => {
             }
             
             // Gemini Vision APIにリクエスト
-            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent', {
+            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/projects/generative-ai-demo/models/gemini-1.5-flash-vision:generateContent', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
@@ -118,7 +118,7 @@ document.getElementById('analyze').addEventListener('click', async () => {
             // 説明文生成
             try {
                 // Gemini Generate APIにリクエスト
-                const explanationResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', {
+                const explanationResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/projects/generative-ai-demo/models/gemini-1.5-flash:generateContent', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${apiKey}`,
