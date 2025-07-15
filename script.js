@@ -13,11 +13,21 @@ async function initCamera() {
 
         // ユーザーの同意を求める
         const camera = document.getElementById('camera');
+        const container = document.getElementById('camera-container');
         
-        // iPhone対応のスタイル設定
+        // カメラコンテナのスタイルを調整
+        container.style.position = 'relative';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.maxHeight = '80vh';
+        
+        // カメラのスタイルを調整
         camera.style.width = '100%';
         camera.style.height = '100%';
-        camera.style.objectFit = 'contain';
+        camera.style.objectFit = 'cover';
+        camera.style.position = 'absolute';
+        camera.style.top = '0';
+        camera.style.left = '0';
         
         // カメラの向きを明確に指定
         const constraints = {
@@ -49,6 +59,12 @@ async function initCamera() {
                     // カメラの向きを自動調整
                     camera.style.transform = 'rotate(0deg)';
                     camera.style.webkitTransform = 'rotate(0deg)';
+                    
+                    // iPhoneのユーザーインタラクション制限対策
+                    camera.style.display = 'none';
+                    setTimeout(() => {
+                        camera.style.display = 'block';
+                    }, 100);
                 }
                 
                 resolve();
