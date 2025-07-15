@@ -63,7 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
+                    'Authorization': `Bearer ${apiKey}`,
+                    'X-Goog-Api-Key': apiKey
                 },
                 body: JSON.stringify({
                     contents: [{
@@ -98,7 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
+                    'Authorization': `Bearer ${apiKey}`,
+                    'X-Goog-Api-Key': apiKey
                 },
                 body: JSON.stringify({
                     contents: [{
