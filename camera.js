@@ -6,6 +6,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultContainer = document.getElementById('result-container');
     let stream;
 
+    // カメラの初期化
+    async function initCamera() {
+        try {
+            // バックカメラを優先
+            const constraints = {
+                video: {
+                    facingMode: { exact: 'environment' },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            
+            // カメラが準備できたら、ボタンを有効化
+            video.onloadedmetadata = () => {
+                captureButton.disabled = false;
+            };
+
+            // エラーハンドリング
+            video.onerror = (error) => {
+                console.error('カメラエラー:', error);
+                alert('カメラの初期化に失敗しました。');
+            };
+        } catch (error) {
+            console.error('カメラアクセスエラー:', error);
+            
+            if (error.name === 'NotAllowedError') {
+                alert('カメラへのアクセスが拒否されました。');
+            } else if (error.name === 'NotFoundError') {
+                alert('カメラが見つかりませんでした。');
+            } else if (error.name === 'NotReadableError') {
+                alert('カメラが使用中です。');
+            } else {
+                alert('カメラの初期化に失敗しました。');
+            }
+        }
+    }
+
     // カメラアクセスの初期化
     async function initCamera() {
         try {
@@ -27,15 +67,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // 撮影処理
     captureButton.addEventListener('click', async () => {
         try {
+            // カメラが準備できていない場合はエラー
+            if (!video.srcObject) {
+                throw new Error('カメラが準備できていません');
+            }
+
+            // キャンバスのサイズをビデオの現在のサイズに合わせる
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
+
+            // ビデオの現在のフレームを描画
             ctx.drawImage(video, 0, 0);
 
-            const image = canvas.toDataURL('image/jpeg');
+            // 画像をJPEGに変換
+            const image = canvas.toDataURL('image/jpeg', 0.8);
             
-            // サーバーサイドAPIを使用して画像を分析
+            // Gemini Vision APIを使用して画像を分析
             const visionResponse = await analyzeImage(image);
             
             // Gemini Generate APIを使用して分析結果を生成
@@ -50,16 +99,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // サーバーサイドAPIを使用して画像を分析
+    // Gemini Vision APIを使用して画像を分析
     async function analyzeImage(image) {
         try {
-            const response = await fetch('/api/analyze', {
+            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.GOOGLE_API_KEY}`
                 },
                 body: JSON.stringify({
-                    image
+                    contents: [{
+                        inlineData: {
+                            mimeType: 'image/jpeg',
+                            data: image.split(',')[1]
+                        }
+                    }]
                 })
             });
             
@@ -69,7 +124,41 @@ document.addEventListener('DOMContentLoaded', () => {
             
             return await response.json();
         } catch (error) {
-            console.error('APIエラー:', error);
+            console.error('Vision APIエラー:', error);
+            throw error;
+        }
+    }
+
+    // Gemini Generate APIを使用して分析結果を生成
+    async function generateAnalysis(visionResponse) {
+        try {
+            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.GOOGLE_API_KEY}`
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `画像から分析した食事内容に基づいて、以下のような情報を生成してください：
+1. 各料理の名前と推定カロリー
+2. 献立全体の合算カロリー
+3. 調理法の推定
+
+分析結果：${JSON.stringify(visionResponse)}`
+                        }]
+                    }]
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Generate APIエラー: ${response.status} ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Generate APIエラー:', error);
             throw error;
         }
     }
