@@ -3,6 +3,7 @@ let camera;
 let canvas;
 let ctx;
 let isCaptured = false;
+let initCameraPromise;
 
 // カメラの初期化
 async function initCamera() {
@@ -41,6 +42,12 @@ async function initCamera() {
         // カメラストリームを取得
         let stream;
         try {
+            // ユーザーの操作を待機
+            await new Promise(resolve => {
+                const captureButton = document.getElementById('capture');
+                captureButton.addEventListener('click', resolve, { once: true });
+            });
+            
             stream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (err) {
             // カメラの制約が厳しすぎる場合は、より柔軟な設定を試す
@@ -130,4 +137,6 @@ function updateButtonStates(state) {
 }
 
 // ページ読み込み時にカメラを初期化
-window.addEventListener('load', initCamera);
+window.addEventListener('load', () => {
+    initCameraPromise = initCamera();
+});
