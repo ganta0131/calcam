@@ -236,10 +236,10 @@ document.getElementById('capture').addEventListener('click', async () => {
         const cameraContainer = document.getElementById('camera-container');
         cameraContainer.appendChild(preview);
         camera.style.display = 'none';
-        
+                        
         // 状態を更新
         updateButtonStates('analyze');
-        
+                        
     } catch (err) {
         console.error('撮影エラー:', err);
         alert('撮影に失敗しました。');
@@ -326,4 +326,13 @@ document.getElementById('retry').addEventListener('click', () => {
 });
 
 // ページ読み込み時にカメラを初期化
-window.addEventListener('load', initCamera);
+window.addEventListener('load', async () => {
+    try {
+        await initCamera();
+        // カメラ初期化後にボタンの状態を更新
+        updateButtonStates('capture');
+    } catch (err) {
+        console.error('カメラ初期化エラー:', err);
+        alert('カメラの初期化に失敗しました。');
+    }
+});
