@@ -33,14 +33,23 @@
             margin: 20px auto;
             width: 100%;
             max-width: 800px;
-            height: calc(100vh - 200px);
+            height: 500px;
+            position: relative;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         #camera {
             width: 100%;
             height: 100%;
-            background-color: #f0f0f0;
-            border-radius: 10px;
-            margin: 20px auto;
+            object-fit: contain;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(0deg);
         }
         button {
             font-family: 'MPLUS1p', sans-serif;
@@ -49,12 +58,52 @@
             margin: 10px;
             border: none;
             border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button.active {
             background-color: #4CAF50;
             color: white;
-            cursor: pointer;
+        }
+        button.disabled {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
         }
         button:hover {
-            background-color: #45a049;
+            opacity: 0.9;
+        }
+
+        /* ローディングスタイル */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #4CAF50;
         }
         .result {
             margin: 20px 0;
@@ -97,13 +146,21 @@
             <video id="camera" autoplay></video>
         </div>
 
-        <button id="capture">撮影</button>
-        <button id="analyze" style="display: none;">AIで分析する</button>
-        <button id="retry" style="display: none;">もう一度撮影</button>
+        <div class="button-group">
+            <button id="capture" class="active">撮影</button>
+            <button id="analyze" class="disabled">AIで分析する</button>
+            <button id="retry" class="disabled">もう一度撮影</button>
+        </div>
 
         <div id="result" class="result" style="display: none;">
             <div class="total-calories">合計カロリー: <span id="total-calories">0</span>kcal</div>
             <div class="items"></div>
+        </div>
+
+        <!-- ローディング表示 -->
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <div class="loading-text"></div>
         </div>
     </div>
 

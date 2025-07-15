@@ -1,7 +1,32 @@
+// グローバル変数の初期化
 let camera;
 let canvas;
 let ctx;
 let isCaptured = false;
+let currentStream = null;
+
+// APIキーの取得（セキュリティのため、環境変数から取得）
+function getApiKey() {
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+        throw new Error('APIキーが設定されていません。');
+    }
+    return apiKey;
+}
+
+// カメラリソースのクリーンアップ
+function cleanupCamera() {
+    if (currentStream) {
+        const tracks = currentStream.getTracks();
+        tracks.forEach(track => track.stop());
+        currentStream = null;
+    }
+    if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+        canvas = null;
+    }
+}
 
 // カメラの初期化
 async function initCamera() {
@@ -12,24 +37,13 @@ async function initCamera() {
         }
 
         // ユーザーの同意を求める
-        const camera = document.getElementById('camera');
+        camera = document.getElementById('camera');
         const container = document.getElementById('camera-container');
         
-        // カメラコンテナのスタイルを調整
-        container.style.position = 'relative';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.maxHeight = '80vh';
-        container.style.backgroundColor = '#f0f0f0';
-        container.style.borderRadius = '10px';
-        
-        // カメラのスタイルを調整
-        camera.style.width = '100%';
-        camera.style.height = '100%';
-        camera.style.objectFit = 'cover';
-        camera.style.position = 'absolute';
-        camera.style.top = '0';
-        camera.style.left = '0';
+        // カメラコンテナの初期化
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
         
         // カメラの向きを明確に指定
         const constraints = {
@@ -43,7 +57,19 @@ async function initCamera() {
         };
 
         // カメラストリームを取得
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err) {
+            // カメラの制約が厳しすぎる場合は、より柔軟な設定を試す
+            console.warn('厳格な制約でのカメラアクセスに失敗しました。より柔軟な設定を試します。');
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+        
+        // 既存のストリームをクリーンアップ
+        cleanupCamera();
+        
+        currentStream = stream;
         camera.srcObject = stream;
         
         // カメラが起動するまで待機
@@ -61,7 +87,20 @@ async function initCamera() {
                     // カメラの向きを自動調整
                     camera.style.transform = 'rotate(0deg)';
                     camera.style.webkitTransform = 'rotate(0deg)';
+                    
+                    // iPhoneの表示制御
+                    camera.style.objectFit = 'contain';
+                    camera.style.position = 'absolute';
+                    camera.style.top = '0';
+                    camera.style.left = '0';
                 }
+                
+                // デバイスの向き変更イベントを追加
+                window.addEventListener('orientationchange', () => {
+                    if (navigator.userAgent.match(/iPhone/)) {
+                        camera.style.transform = `rotate(${window.orientation}deg)`;
+                    }
+                });
                 
                 resolve();
             };
@@ -77,11 +116,12 @@ async function initCamera() {
             };
         });
         
+        // エラーハンドリングの改善
     } catch (err) {
-        console.error('カメラのアクセスエラー:', err);
+        console.error('カメラの初期化エラー:', err);
         
         // より具体的なエラーメッセージを表示
-        let errorMessage = 'カメラのアクセスに失敗しました。';
+        let errorMessage = 'カメラの初期化に失敗しました。';
         if (err.name === 'NotAllowedError') {
             errorMessage = 'カメラへのアクセスを許可してください。\n\n' +
                          '1. ブラウザの設定でカメラアクセスを許可してください\n' +
@@ -91,6 +131,10 @@ async function initCamera() {
             errorMessage = 'カメラが見つかりませんでした。\n\n' +
                          '1. デバイスにカメラが接続されているか確認してください\n' +
                          '2. カメラの電源がオンになっているか確認してください';
+        } else if (err.name === 'NotAllowedError') {
+            errorMessage = 'カメラへのアクセスが拒否されました。\n\n' +
+                         '1. ブラウザの設定でカメラアクセスを許可してください\n' +
+                         '2. ブラウザを再起動して再度お試しください';
         }
         
         alert(errorMessage);
@@ -108,184 +152,169 @@ async function initCamera() {
     }
 }
 
+// 状態管理用の関数
+function updateButtonStates(state) {
+    const captureButton = document.getElementById('capture');
+    const analyzeButton = document.getElementById('analyze');
+    const retryButton = document.getElementById('retry');
+    const resultDiv = document.getElementById('result');
+    const loading = document.getElementById('loading');
+
+    switch (state) {
+        case 'capture':
+            captureButton.className = 'active';
+            analyzeButton.className = 'disabled';
+            retryButton.className = 'disabled';
+            resultDiv.style.display = 'none';
+            loading.style.display = 'none';
+            break;
+        case 'analyze':
+            captureButton.className = 'disabled';
+            analyzeButton.className = 'active';
+            retryButton.className = 'disabled';
+            resultDiv.style.display = 'none';
+            loading.style.display = 'block';
+            loading.querySelector('.loading-text').textContent = '分析中...';
+            break;
+        case 'result':
+            captureButton.className = 'disabled';
+            analyzeButton.className = 'disabled';
+            retryButton.className = 'active';
+            resultDiv.style.display = 'block';
+            loading.style.display = 'none';
+            break;
+    }
+}
+
 // 撮影処理
 document.getElementById('capture').addEventListener('click', async () => {
     try {
-        const captureButton = document.getElementById('capture');
-        const analyzeButton = document.getElementById('analyze');
-        const retryButton = document.getElementById('retry');
-        const resultDiv = document.getElementById('result');
-
         // キャンバスの初期化
         canvas = document.createElement('canvas');
-        canvas.width = camera.videoWidth;
-        canvas.height = camera.videoHeight;
         ctx = canvas.getContext('2d');
         
-        // カメラ画像をキャプチャ
-        ctx.drawImage(camera, 0, 0);
+        // カメラのサイズを取得
+        const videoWidth = camera.videoWidth;
+        const videoHeight = camera.videoHeight;
         
-        // キャプチャした画像をプレビュー表示
+        // 画面のアスペクト比に合わせてサイズを調整
+        const container = document.getElementById('camera-container');
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        
+        // アスペクト比を維持しながら最大サイズに収まるように調整
+        let width = videoWidth;
+        let height = videoHeight;
+        const aspectRatio = videoWidth / videoHeight;
+        
+        if (width > containerWidth) {
+            width = containerWidth;
+            height = Math.round(width / aspectRatio);
+        }
+        if (height > containerHeight) {
+            height = containerHeight;
+            width = Math.round(height * aspectRatio);
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // カメラ映像を描画
+        ctx.drawImage(camera, 0, 0, width, height);
+        
+        // プレビュー画像を作成
         const preview = document.createElement('img');
         preview.id = 'preview';
-        preview.style.width = '100%';
-        preview.style.maxWidth = '800px';
-        preview.style.margin = '20px 0';
+        preview.className = 'preview-image';
         preview.src = canvas.toDataURL('image/png');
         
-        // 現在のカメラビデオを非表示
-        camera.style.display = 'none';
-        
-        // プレビュー画像を追加
+        // カメラ映像を非表示にし、プレビューを表示
         const cameraContainer = document.getElementById('camera-container');
         cameraContainer.appendChild(preview);
+        camera.style.display = 'none';
         
-        // ボタンの表示を切り替え
-        captureButton.style.display = 'none';
-        analyzeButton.style.display = 'inline';
-        retryButton.style.display = 'inline';
-        resultDiv.style.display = 'none';
+        // 状態を更新
+        updateButtonStates('analyze');
         
     } catch (err) {
         console.error('撮影エラー:', err);
         alert('撮影に失敗しました。');
+        updateButtonStates('capture');
     }
 });
 
 // 分析処理
 document.getElementById('analyze').addEventListener('click', async () => {
-    const analyzeButton = document.getElementById('analyze');
-    const retryButton = document.getElementById('retry');
-    const resultDiv = document.getElementById('result');
-    const totalCaloriesSpan = document.getElementById('total-calories');
-    const itemsDiv = document.querySelector('.items');
-
     try {
-        // 画像をTensorに変換
-        const img = tf.browser.fromPixels(canvas);
+        // 状態を更新
+        updateButtonStates('analyze');
+
+        // APIキーの取得
+        const apiKey = getApiKey();
+
+        // 画像をBase64に変換
+        const imgData = canvas.toDataURL('image/png');
         
-        try {
-            // 画像をBase64に変換
-            const canvas = document.createElement('canvas');
-            canvas.width = camera.videoWidth;
-            canvas.height = camera.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(camera, 0, 0);
-            
-            // CanvasからBase64データを取得
-            const base64Image = canvas.toDataURL('image/png');
-            
-            // Vercelの環境変数からAPIキーを取得
-            const apiKey = process.env.GOOGLE_API_KEY;
-            console.log('APIキー:', apiKey ? '設定されています' : '設定されていません');
-            
-            // テスト用のリクエスト
-            const testResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`
-                }
-            });
-            
-            if (!testResponse.ok) {
-                const error = await testResponse.json();
-                console.error('テストリクエストエラー:', error);
-                throw new Error(`テストリクエストに失敗しました: ${error.message}`);
-            }
-            
-            // Gemini Vision APIにリクエスト
-            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/projects/generative-ai-demo/models/gemini-1.5-flash-vision:generateContent', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: [
-                        {
-                            parts: [
-                                {
-                                    inlineData: {
-                                        mimeType: 'image/png',
-                                        data: base64Image.split(',')[1] // Base64データ部分のみ
-                                    }
-                                }
-                            ]
+        // Gemini Vision APIに画像を送信
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-vision-pro:generateContent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        inlineData: {
+                            mimeType: 'image/png',
+                            data: imgData.split(',')[1]
                         }
-                    ],
-                    prompt: {
-                        text: "この写真に写っている食材・料理名・調理法・分量を推定し、それぞれの献立名と推定カロリー、献立全体の合算カロリーをJSON形式で出力してください。"
-                    }
-                })
-            });
-            
-            const result = await response.json();
-            const resultText = result.candidates[0].content.text;
-            const resultDict = JSON.parse(resultText);
-            
-            // 結果を表示
-            totalCaloriesSpan.textContent = resultDict.totalCalories + 'kcal';
-            itemsDiv.innerHTML = resultDict.items.map(item => 
-                `<div class="item">${item.name}: ${item.calories}kcal</div>`
-            ).join('');
-            
-            // 説明文生成
-            try {
-                // Gemini Generate APIにリクエスト
-                const explanationResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/projects/generative-ai-demo/models/gemini-1.5-flash:generateContent', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [
-                                    {
-                                        text: `次のJSONの献立内容・カロリーについて、わかりやすく日本語で説明してください。\n${resultText}`
-                                    }
-                                ]
-                            }
-                        ]
-                    })
-                });
-                
-                const explanationResult = await explanationResponse.json();
-                const explanation = explanationResult.candidates[0].content.text;
-                
-                // 説明文を表示
-                const explanationDiv = document.createElement('div');
-                explanationDiv.className = 'explanation';
-                explanationDiv.innerHTML = `<div class="explanation-title">説明:</div><div class="explanation-text">${explanation}</div>`;
-                itemsDiv.appendChild(explanationDiv);
-            } catch (explanationError) {
-                console.error('説明文生成エラー:', explanationError);
-                alert('説明文の生成に失敗しました。');
-            }
-            
-            resultDiv.style.display = 'block';
-            
-        } catch (error) {
-            console.error('画像分析エラー:', error);
-            alert('画像分析に失敗しました。');
+                    }]
+                }]
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('分析に失敗しました。');
         }
+        
+        const data = await response.json();
+        const result = data.candidates[0].content.parts[0].text;
+        
+        // 結果を表示
+        const itemsDiv = document.getElementById('items');
+        itemsDiv.innerHTML = result;
+        
+        // カロリーの合計を計算
+        const totalCalories = calculateTotalCalories(result);
+        document.getElementById('total-calories').textContent = totalCalories;
+        
+        // 状態を更新
+        updateButtonStates('result');
+        
     } catch (err) {
-        console.error('画像分析に失敗しました:', err);
-        alert('画像分析に失敗しました。');
+        console.error('分析エラー:', err);
+        alert('分析に失敗しました。');
+        updateButtonStates('capture');
     }
 });
 
 // もう一度撮影
 document.getElementById('retry').addEventListener('click', () => {
+    // イベントリスナーを一度削除
+    const retryButton = document.getElementById('retry');
+    retryButton.removeEventListener('click', arguments.callee);
+    
+    // カメラリソースをクリーンアップ
+    cleanupCamera();
+    
+    // ボタンの状態をリセット
     const captureButton = document.getElementById('capture');
     const analyzeButton = document.getElementById('analyze');
-    const retryButton = document.getElementById('retry');
     const resultDiv = document.getElementById('result');
-
+    
     captureButton.style.display = 'inline';
     analyzeButton.style.display = 'none';
-    retryButton.style.display = 'none';
     resultDiv.style.display = 'none';
     
     // カメラを再起動
