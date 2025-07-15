@@ -7,29 +7,63 @@ let isCaptured = false;
 async function initCamera() {
     try {
         // HTTPSでのみカメラアクセスを許可
-        if (!window.location.protocol === 'https:') {
+        if (window.location.protocol !== 'https:') {
             throw new Error('カメラを使用するにはHTTPSが必要です。');
         }
 
         // ユーザーの同意を求める
         const camera = document.getElementById('camera');
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: 'environment', // バックカメラを使用
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        });
         
+        // iPhone対応のスタイル設定
+        camera.style.width = '100%';
+        camera.style.height = '100%';
+        camera.style.objectFit = 'contain';
+        
+        // カメラの向きを明確に指定
+        const constraints = {
+            video: {
+                facingMode: { exact: 'environment' }, // バックカメラを使用
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                aspectRatio: { ideal: 1.7777777778 }, // 16:9
+                resizeMode: 'crop-and-scale'
+            }
+        };
+
+        // カメラストリームを取得
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         camera.srcObject = stream;
         
         // カメラが起動するまで待機
         await new Promise(resolve => {
-            camera.onloadedmetadata = () => resolve();
+            camera.onloadedmetadata = () => {
+                // カメラの向きを調整
+                camera.play();
+                
+                // iPhone対応の追加設定
+                if (navigator.userAgent.match(/iPhone/)) {
+                    // iPhoneの場合、回転を無しに
+                    camera.style.webkitTransform = '';
+                    camera.style.transform = '';
+                    
+                    // カメラの向きを自動調整
+                    camera.style.transform = 'rotate(0deg)';
+                    camera.style.webkitTransform = 'rotate(0deg)';
+                }
+                
+                resolve();
+            };
         });
         
-        // カメラの向きを調整
-        camera.play();
+        // カメラの接続状態を監視
+        const tracks = stream.getTracks();
+        tracks.forEach(track => {
+            track.onended = () => {
+                console.log('カメラが切断されました');
+                alert('カメラが切断されました。再起動します。');
+                initCamera();
+            };
+        });
         
     } catch (err) {
         console.error('カメラのアクセスエラー:', err);
@@ -64,25 +98,46 @@ async function initCamera() {
 
 // 撮影処理
 document.getElementById('capture').addEventListener('click', async () => {
-    const captureButton = document.getElementById('capture');
-    const analyzeButton = document.getElementById('analyze');
-    const retryButton = document.getElementById('retry');
-    const resultDiv = document.getElementById('result');
+    try {
+        const captureButton = document.getElementById('capture');
+        const analyzeButton = document.getElementById('analyze');
+        const retryButton = document.getElementById('retry');
+        const resultDiv = document.getElementById('result');
 
-    // キャンバスの初期化
-    canvas = document.createElement('canvas');
-    canvas.width = camera.videoWidth;
-    canvas.height = camera.videoHeight;
-    ctx = canvas.getContext('2d');
-    
-    // カメラ画像をキャプチャ
-    ctx.drawImage(camera, 0, 0);
-    
-    // ボタンの表示を切り替え
-    captureButton.style.display = 'none';
-    analyzeButton.style.display = 'inline';
-    retryButton.style.display = 'inline';
-    resultDiv.style.display = 'none';
+        // キャンバスの初期化
+        canvas = document.createElement('canvas');
+        canvas.width = camera.videoWidth;
+        canvas.height = camera.videoHeight;
+        ctx = canvas.getContext('2d');
+        
+        // カメラ画像をキャプチャ
+        ctx.drawImage(camera, 0, 0);
+        
+        // キャプチャした画像をプレビュー表示
+        const preview = document.createElement('img');
+        preview.id = 'preview';
+        preview.style.width = '100%';
+        preview.style.maxWidth = '800px';
+        preview.style.margin = '20px 0';
+        preview.src = canvas.toDataURL('image/png');
+        
+        // 現在のカメラビデオを非表示
+        camera.style.display = 'none';
+        
+        // プレビュー画像を追加
+        const cameraContainer = document.getElementById('camera-container');
+        cameraContainer.appendChild(preview);
+        
+        // ボタンの表示を切り替え
+        captureButton.style.display = 'none';
+        analyzeButton.style.display = 'inline';
+        retryButton.style.display = 'inline';
+        resultDiv.style.display = 'none';
+        
+    } catch (err) {
+        console.error('撮影エラー:', err);
+        alert('撮影に失敗しました。');
+    }
 });
 
 // 分析処理
