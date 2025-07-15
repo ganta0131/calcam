@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カロリーカメラ</title>
+    <title>カメラアプリ</title>
     <style>
         body {
             margin: 0;
@@ -44,16 +44,10 @@
     </style>
 </head>
 <body>
-    <h1>カロリーカメラ</h1>
     <div id="camera-container">
         <video id="video" playsinline autoplay></video>
     </div>
-    <button id="captureButton">食卓を撮影</button>
-    <div id="result-container" style="display: none; margin-top: 20px; width: 90vw;">
-        <h2>分析結果</h2>
-        <div id="dishes"></div>
-        <div id="total-calories"></div>
-    </div>
+    <button id="captureButton">撮影</button>
     <script src="camera.js"></script>
 </body>
 </html>

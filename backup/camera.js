@@ -1,9 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const video = document.getElementById('video');
     const captureButton = document.getElementById('captureButton');
-    const dishesContainer = document.getElementById('dishes');
-    const totalCaloriesContainer = document.getElementById('total-calories');
-    const resultContainer = document.getElementById('result-container');
     let stream;
 
     // カメラアクセスの初期化
@@ -35,15 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const image = canvas.toDataURL('image/jpeg');
             
-            // Gemini Vision APIを使用して画像を分析
-            const visionResponse = await analyzeImage(image);
+            // 撮影した画像を新しいタブで開く
+            window.open(image);
             
-            // Gemini Generate APIを使用して分析結果を生成
-            const generateResponse = await generateAnalysis(visionResponse);
-            
-            // 結果を表示
-            displayResults(generateResponse);
-            resultContainer.style.display = 'block';
+            // 画像を保存する
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = 'photo.jpg';
+            link.click();
         } catch (error) {
             console.error('撮影に失敗しました:', error);
             alert('撮影に失敗しました。');
