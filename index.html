@@ -171,6 +171,8 @@
 
                     const data = await response.json();
                     if (data.error) {
+                        console.error('APIエラー:', data.error);
+                        alert(`エラー: ${data.error}`);
                         throw new Error(data.error);
                     }
 
@@ -178,6 +180,11 @@
                     resultContainer.style.display = 'block';
                 } catch (error) {
                     console.error('撮影エラー:', error);
+                    if (error.message) {
+                        alert(`エラー: ${error.message}`);
+                    } else {
+                        alert('エラーが発生しました。');
+                    }
                     alert('撮影エラー: ' + error.message);
                 }
             });
