@@ -51,15 +51,31 @@ def call_vision_api(base64_data):
         print(f"Base64データサイズ: {len(base64_data)}バイト")
         print(f"パディング前のデータ長: {len(base64_data) % 4}")
         
-        # Base64データのバリデーション
+        # Base64データのバリデーションと正規化
         if not base64_data:
             raise ValueError('Base64データが空です')
             
+        # URLエンコードされた文字を置換（Gemini API仕様に合わせる）
+        base64_data = base64_data.replace('-', '+').replace('_', '/')
+        
         # パディングを追加（必要に応じて）
         padding_needed = len(base64_data) % 4
         if padding_needed:
             base64_data += '=' * (4 - padding_needed)
-            print(f"パディング追加後: {len(base64_data)}バイト")
+            
+        # Base64データをバイナリにデコードして再エンコード
+        try:
+            binary_data = base64.b64decode(base64_data)
+            # 画像データの形式を確認
+            if not binary_data.startswith((b'\xff\xd8', b'\x89PNG')):
+                raise ValueError('サポートされていない画像形式です')
+            
+            # 再エンコード
+            base64_data = base64.b64encode(binary_data).decode('utf-8')
+            print(f"Base64データ長: {len(base64_data)}バイト")
+            
+        except Exception as e:
+            raise ValueError(f'Base64データの処理に失敗しました: {str(e)}')
         
         # サービスアカウント認証
         service_account_info = os.getenv('GOOGLE_SERVICE_ACCOUNT_INFO')
