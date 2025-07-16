@@ -61,9 +61,6 @@ def call_vision_api(base64_data):
             base64_data += '=' * (4 - padding_needed)
             print(f"パディング追加後: {len(base64_data)}バイト")
         
-        # URLエンコードされた文字をデコード
-        base64_data = base64_data.replace('-', '+').replace('_', '/')
-        
         # サービスアカウント認証
         service_account_info = os.getenv('GOOGLE_SERVICE_ACCOUNT_INFO')
         if not service_account_info:
@@ -87,15 +84,7 @@ def call_vision_api(base64_data):
                     }
                 }],
                 'generationConfig': {
-                    'temperature': 0.7,
-                    'topP': 0.8,
-                    'topK': 40
-                },
-                'tools': [{
-                    'type': 'vision'
-                }],
-                'prompt': {
-                    'text': 'この画像から食事の内容を分析し、各料理の名前と推定カロリーを特定してください。'
+                    'temperature': 0.7
                 }
             }
         )
