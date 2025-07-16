@@ -114,18 +114,31 @@ def call_generate_api(vision_response):
                 'Content-Type': 'application/json'
             },
             json={
-            'contents': [{
-                'parts': [{
-                    'text': f"画像から分析した食事内容に基づいて、以下のような情報を生成してください：\n1. 各料理の名前と推定カロリー\n2. 献立全体の合算カロリー\n3. 調理法の推定\n\n分析結果：{vision_response}"
+                'contents': [{
+                    'parts': [{
+                        'text': f"画像から分析した食事内容に基づいて、以下のような情報を生成してください：\n1. 各料理の名前と推定カロリー\n2. 献立全体の合算カロリー\n3. 調理法の推定\n\n分析結果：{vision_response}"
+                    }]
                 }]
-            }]
-        }
-    )
-    
-    if response.status_code != 200:
-        raise Exception(f'Generate APIエラー: {response.text}')
-    
-    return response.json()
+            }
+        )
+        
+        print(f"=== Generate APIレスポンス ===")
+        print(f"ステータスコード: {response.status_code}")
+        print(f"レスポンスヘッダー: {dict(response.headers)}")
+        
+        if response.status_code != 200:
+            print(f"=== APIエラー詳細 ===")
+            print(f"レスポンスボディ: {response.text}")
+            error_data = response.json()
+            error_message = error_data.get('error', {}).get('message', '不明なエラー')
+            raise Exception(f'Generate APIエラー: {error_message}')
+        
+        return response.json()
+        
+    except Exception as e:
+        print(f"=== エラー詳細 ===")
+        print(f"エラー: {str(e)}")
+        raise
 
 if __name__ == '__main__':
     app.run(debug=True)
