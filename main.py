@@ -99,16 +99,13 @@ def call_vision_api(base64_data):
         print(f"レスポンスヘッダー: {dict(response.headers)}")
         
         if response.status_code != 200:
-            print(f"=== APIエラー詳細 ===")
-            print(f"レスポンスボディ: {response.text}")
             try:
                 error_data = response.json()
                 error_message = error_data.get('error', {}).get('message', '不明なエラー')
-                print(f"エラー詳細: {error_data}")
-                raise Exception(f'Vision APIエラー: {error_message}')
+                # エラーデータを返す代わりに、エラーメッセージのみを返す
+                return {'error': f'Vision APIエラー: {error_message}'}, response.status_code
             except Exception:
-                print(f"エラー解析失敗: {response.text}")
-                raise Exception(f'Vision APIエラー: レスポンスの解析に失敗しました')
+                return {'error': f'Vision APIエラー: レスポンスの解析に失敗しました'}, response.status_code
         
         return response.json()
         

@@ -172,19 +172,19 @@
                     const data = await response.json();
                     if (data.error) {
                         console.error('APIエラー:', data.error);
-                        alert(`エラー: ${data.error}`);
-                        throw new Error(data.error);
+                        // エラーメッセージを表示
+                        const errorMessage = data.error;
+                        const errorDetails = errorMessage.includes('Vision APIエラー:') ? errorMessage : `Vision APIエラー: ${errorMessage}`;
+                        alert(errorDetails);
+                        return;
                     }
 
                     displayResults(data);
                     resultContainer.style.display = 'block';
                 } catch (error) {
                     console.error('撮影エラー:', error);
-                    if (error.message) {
-                        alert(`エラー: ${error.message}`);
-                    } else {
-                        alert('エラーが発生しました。');
-                    }
+                    alert(`エラー: ${error.message || '不明なエラーが発生しました'}`);
+                    return;
                     alert('撮影エラー: ' + error.message);
                 }
             });
