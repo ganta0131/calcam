@@ -51,6 +51,19 @@ def call_vision_api(base64_data):
         print(f"Base64データサイズ: {len(base64_data)}バイト")
         print(f"パディング前のデータ長: {len(base64_data) % 4}")
         
+        # Base64データのバリデーション
+        if not base64_data:
+            raise ValueError('Base64データが空です')
+            
+        # パディングを追加（必要に応じて）
+        padding_needed = len(base64_data) % 4
+        if padding_needed:
+            base64_data += '=' * (4 - padding_needed)
+            print(f"パディング追加後: {len(base64_data)}バイト")
+        
+        # URLエンコードされた文字をデコード
+        base64_data = base64_data.replace('-', '+').replace('_', '/')
+        
         # サービスアカウント認証
         service_account_info = os.getenv('GOOGLE_SERVICE_ACCOUNT_INFO')
         if not service_account_info:
@@ -72,7 +85,12 @@ def call_vision_api(base64_data):
                         'mimeType': 'image/jpeg',
                         'data': base64_data
                     }
-                }]
+                }],
+                'generationConfig': {
+                    'temperature': 0.7,
+                    'topP': 0.8,
+                    'topK': 40
+                }
             }
         )
         
@@ -83,9 +101,14 @@ def call_vision_api(base64_data):
         if response.status_code != 200:
             print(f"=== APIエラー詳細 ===")
             print(f"レスポンスボディ: {response.text}")
-            error_data = response.json()
-            error_message = error_data.get('error', {}).get('message', '不明なエラー')
-            raise Exception(f'Vision APIエラー: {error_message}')
+            try:
+                error_data = response.json()
+                error_message = error_data.get('error', {}).get('message', '不明なエラー')
+                print(f"エラー詳細: {error_data}")
+                raise Exception(f'Vision APIエラー: {error_message}')
+            except Exception:
+                print(f"エラー解析失敗: {response.text}")
+                raise Exception(f'Vision APIエラー: レスポンスの解析に失敗しました')
         
         return response.json()
         
