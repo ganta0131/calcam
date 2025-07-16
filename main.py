@@ -105,13 +105,34 @@ def call_vision_api(base64_data):
         print(f"レスポンスヘッダー: {dict(response.headers)}")
         
         if response.status_code != 200:
+            print(f"=== レスポンス詳細 ===")
+            print(f"ステータスコード: {response.status_code}")
+            print(f"レスポンスヘッダー: {dict(response.headers)}")
+            print(f"レスポンスボディ: {response.text}")
+            
             try:
                 error_data = response.json()
-                error_message = error_data.get('error', {}).get('message', '不明なエラー')
-                # エラーデータを返す代わりに、エラーメッセージのみを返す
-                return {'error': f'Vision APIエラー: {error_message}'}, response.status_code
-            except Exception:
-                return {'error': f'Vision APIエラー: レスポンスの解析に失敗しました'}, response.status_code
+                print(f"=== レスポンスJSON ===")
+                print(json.dumps(error_data, indent=2))
+                
+                error_details = {
+                    'code': error_data.get('error', {}).get('code'),
+                    'status': error_data.get('error', {}).get('status'),
+                    'message': error_data.get('error', {}).get('message'),
+                    'details': error_data.get('error', {}).get('details')
+                }
+                
+                error_message = f"Vision APIエラー: {error_details['message']}\n" \
+                             f"ステータス: {error_details['status']}\n" \
+                             f"コード: {error_details['code']}"
+                
+                return {'error': error_message}, response.status_code
+                
+            except Exception as e:
+                error_message = f"Vision APIエラー: レスポンスの解析に失敗しました\n" \
+                             f"ステータスコード: {response.status_code}\n" \
+                             f"レスポンス: {response.text[:1000]}..."
+                return {'error': error_message}, response.status_code
         
         return response.json()
         

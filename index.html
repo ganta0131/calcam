@@ -111,13 +111,29 @@
 
             async function initCamera() {
                 try {
+                    // モバイルデバイスの制約を考慮
                     const constraints = {
                         video: {
                             facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
+                            width: { min: 320, ideal: 640, max: 1280 },
+                            height: { min: 240, ideal: 480, max: 720 },
+                            frameRate: { ideal: 10, max: 15 }
                         }
                     };
+                    
+                    // HTTPSチェック
+                    if (!window.location.protocol.startsWith('https')) {
+                        alert('このアプリケーションはHTTPS接続でのみ動作します。');
+                        return;
+                    }
+                    
+                    // パーミッションチェック
+                    const permission = await navigator.permissions.query({ name: 'camera' });
+                    if (permission.state === 'denied') {
+                        alert('カメラのアクセスが拒否されています。設定からカメラアクセスを許可してください。');
+                        return;
+                    }
+                    
                     stream = await navigator.mediaDevices.getUserMedia(constraints);
                     video.srcObject = stream;
                     captureButton.disabled = false;
@@ -172,10 +188,17 @@
                     const data = await response.json();
                     if (data.error) {
                         console.error('APIエラー:', data.error);
-                        // エラーメッセージを表示
-                        const errorMessage = data.error;
-                        const errorDetails = errorMessage.includes('Vision APIエラー:') ? errorMessage : `Vision APIエラー: ${errorMessage}`;
-                        alert(errorDetails);
+                        // エラーメッセージを詳細に表示
+                        const errorDetails = data.error.split('\n');
+                        let detailedMessage = '';
+                        errorDetails.forEach((line, index) => {
+                            if (index === 0) {
+                                detailedMessage += line;
+                            } else {
+                                detailedMessage += '\n' + line;
+                            }
+                        });
+                        alert(detailedMessage);
                         return;
                     }
 
