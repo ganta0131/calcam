@@ -90,6 +90,12 @@ def call_vision_api(base64_data):
                     'temperature': 0.7,
                     'topP': 0.8,
                     'topK': 40
+                },
+                'tools': [{
+                    'type': 'vision'
+                }],
+                'prompt': {
+                    'text': 'この画像から食事の内容を分析し、各料理の名前と推定カロリーを特定してください。'
                 }
             }
         )
