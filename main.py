@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify
 import requests
 import os
 import base64
+from google.oauth2 import service_account
+import json
 
 app = Flask(__name__)
 
@@ -44,60 +46,74 @@ def analyze():
         return jsonify({'error': str(e)}), 500
 
 def call_vision_api(base64_data):
-    api_key = os.environ.get('GOOGLE_API_KEY')
-    if not api_key:
-        raise ValueError('APIキーが設定されていません')
-    
-    # Base64データの最終的なチェック
-    if len(base64_data) % 4 != 0:
-        raise ValueError('Base64データの長さが4で割り切れません')
-    
-    # パディングを追加
-    padding_needed = len(base64_data) % 4
-    if padding_needed:
-        base64_data += '=' * (4 - padding_needed)
-    
-    # バリデーション
-    valid_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
-    if not all(c in valid_chars for c in base64_data):
-        raise ValueError('無効なBase64文字が含まれています')
-    
-    # APIリクエスト
-    response = requests.post(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
-        headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json'
-        },
-        json={
-            'contents': [{
-                'inlineData': {
-                    'mimeType': 'image/jpeg',
-                    'data': base64_data
-                }
-            }]
-        }
-    )
-    
-    if response.status_code != 200:
-        error_data = response.json()
-        error_message = error_data.get('error', {}).get('message', '不明なエラー')
-        raise Exception(f'Vision APIエラー: {error_message}')
-    
-    return response.json()
+    try:
+        print(f"=== Vision APIリクエスト詳細 ===")
+        print(f"Base64データサイズ: {len(base64_data)}バイト")
+        print(f"パディング前のデータ長: {len(base64_data) % 4}")
+        
+        # サービスアカウント認証
+        service_account_info = os.getenv('GOOGLE_SERVICE_ACCOUNT_INFO')
+        if not service_account_info:
+            raise ValueError('GOOGLE_SERVICE_ACCOUNT_INFO環境変数が設定されていません')
+        
+        credentials_dict = json.loads(service_account_info)
+        credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+        
+        # APIリクエスト
+        response = requests.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
+            headers={
+                'Authorization': f'Bearer {credentials.token}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'contents': [{
+                    'inlineData': {
+                        'mimeType': 'image/jpeg',
+                        'data': base64_data
+                    }
+                }]
+            }
+        )
+        
+        print(f"=== APIレスポンス ===")
+        print(f"ステータスコード: {response.status_code}")
+        print(f"レスポンスヘッダー: {dict(response.headers)}")
+        
+        if response.status_code != 200:
+            print(f"=== APIエラー詳細 ===")
+            print(f"レスポンスボディ: {response.text}")
+            error_data = response.json()
+            error_message = error_data.get('error', {}).get('message', '不明なエラー')
+            raise Exception(f'Vision APIエラー: {error_message}')
+        
+        return response.json()
+        
+    except Exception as e:
+        print(f"=== エラー詳細 ===")
+        print(f"エラー: {str(e)}")
+        raise
 
 def call_generate_api(vision_response):
-    api_key = os.environ.get('GOOGLE_API_KEY')
-    if not api_key:
-        raise ValueError('APIキーが設定されていません')
-    
-    response = requests.post(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-        headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json'
-        },
-        json={
+    try:
+        print(f"=== Generate APIリクエスト詳細 ===")
+        print(f"Visionレスポンス: {vision_response}")
+        
+        # サービスアカウント認証
+        service_account_info = os.getenv('GOOGLE_SERVICE_ACCOUNT_INFO')
+        if not service_account_info:
+            raise ValueError('GOOGLE_SERVICE_ACCOUNT_INFO環境変数が設定されていません')
+        
+        credentials_dict = json.loads(service_account_info)
+        credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+        
+        response = requests.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+            headers={
+                'Authorization': f'Bearer {credentials.token}',
+                'Content-Type': 'application/json'
+            },
+            json={
             'contents': [{
                 'parts': [{
                     'text': f"画像から分析した食事内容に基づいて、以下のような情報を生成してください：\n1. 各料理の名前と推定カロリー\n2. 献立全体の合算カロリー\n3. 調理法の推定\n\n分析結果：{vision_response}"
